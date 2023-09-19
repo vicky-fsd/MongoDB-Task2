@@ -1,0 +1,184 @@
+Qus 1 : Find all the topics and tasks which are thought in the month of October
+Ans :
+
+db.topics.aggregate([
+  {
+    $match: {
+      topic_date: {
+        $gte: ISODate("2020-10-01"),
+        $lte: ISODate("2020-10-31")
+      }
+    }
+  },
+  {
+    $lookup: {
+      from: "tasks",
+      localField: "topic_id",
+      foreignField: "topic_id",
+      as: "tasks"
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      topic_id: 1,
+      topic: 1,
+      tasks: {
+        $filter: {
+          input: "$tasks",
+          as: "task",
+          cond: {
+            $and: [
+              { $gte: ["$$task.due_date", ISODate("2020-10-01")] },
+              { $lte: ["$$task.due_date", ISODate("2020-10-31")] }
+            ]
+          }
+        }
+      }
+    }
+  }
+])
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+Qus 2 : Find all the company drives which appeared between 15 oct-2020 and 31-oct-2020
+Ans : 
+
+  db.company_drives.find({
+  drive_date: {
+    $gte: ISODate("2020-10-15"),
+    $lte: ISODate("2020-10-31")
+  }
+})
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+Qus 3 : Find all the company drives and students who are appeared for the placement.
+Ans :
+
+  db.company_drives.aggregate([
+  {
+    $lookup: {
+      from: "attendance",
+      localField: "drive_date",
+      foreignField: "topic_date",
+      as: "attendance"
+    }
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "user-id",
+      foreignField: "user-id",
+      as: "students"
+    }
+  },
+  {
+    $unwind: "$attendance"
+  },
+  {
+    $match: {
+      "attendance.present": true
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      "company_name": 1,
+      "drive_date": 1,
+      "students.name": 1,
+      "students.email": 1
+    }
+  }
+])
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+Qus 4 : Find the number of problems solved by the user in codekata
+Ans :
+      db.codekata.aggregate([
+  {
+    $group: {
+      _id: "$user-id",
+      totalProblemsSolved: { $sum: "$no_of_problems_solved" }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      user_id: "$_id",
+      totalProblemsSolved: 1
+    }
+  }
+])
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+Qus 5 : Find all the mentors with who has the mentee's count more than 15
+Ans :
+      db.mentors.aggregate([
+  {
+    $lookup: {
+      from: "users",
+      localField: "mentor-id",
+      foreignField: "mentor-id",
+      as: "mentees"
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      mentor_id: "$mentor-id",
+      mentor_name: "$mentor_name",
+      menteeCount: { $size: "$mentees" }
+    }
+  },
+  {
+    $match: {
+      menteeCount: { $gt: 15 }
+    }
+  }
+])
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+Qus 6 : Find the number of users who are absent and task is not submitted  between 15 oct-2020 and 31-oct-2020
+
+Ans : 
+
+      db.attendance.aggregate([
+  {
+    $match: {
+      topic_date: {
+        $gte: ISODate("2020-10-15"),
+        $lte: ISODate("2020-10-31")
+      },
+      present: false
+    }
+  },
+  {
+    $lookup: {
+      from: "tasks",
+      localField: "user-id",
+      foreignField: "user-id",
+      as: "tasks"
+    }
+  },
+  {
+    $match: {
+      "tasks.submitted": false
+    }
+  },
+  {
+    $group: {
+      _id: null,
+      count: { $sum: 1 }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      absentUsersWithUnsubmittedTasks: "$count"
+    }
+  }
+])
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
