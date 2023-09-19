@@ -156,7 +156,7 @@ db.tasks.insertMany([
     "user-id": 5,
     "task": "Node task",
     "due_date": new Date("2020-10-30"),
-    'submitted': false,
+    "submitted": false,
   },
 ]);
 
